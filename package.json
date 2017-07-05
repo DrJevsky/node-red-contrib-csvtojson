@@ -1,7 +1,7 @@
 {
-  "name": "node-red-contrib-cvstojson",
+  "name": "node-red-contrib-csvtojson",
   "version": "0.0.1",
-  "description": "Node-RED node to parse cvs to json",
+  "description": "Node-RED node to parse csv to json",
   "dependencies": {
     "csvtojson": "^1.1.7"
   },
