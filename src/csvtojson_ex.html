@@ -1,66 +1,73 @@
 <script type="text/javascript">
-    RED.nodes.registerType('csv to json ext',{
+    RED.nodes.registerType('csv to json ext', {
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            name: {value:""},
-            version: {value:"0.1"},
-            source: {value:"filename", required:true},
-            delimiter: {value:",", required:true, validate:function(v) {
-                // "auto" or "," or other character
-                // if list, must be list of strings
-                if (v === "auto" || v === ",") {
-                    return true;
-                }
-                if (v.indexOf(',') > -1) {
-                    try {
-                        // first, will it parse as a comma delimited list
-                        var l = JSON.parse("[" + v + "]"); 
-                        // second, are all the elements strings
-                        var length = l.length;
-                        for (var i = 0; i < length; i++) {
-                            if ( !(typeof l[i] === 'string' || l[i] instanceof String) ) {
-                                throw 'Non-string in list';
+            name: { value: "" },
+            version: { value: "0.1" },
+            source: { value: "filename", required: true },
+            delimiter: {
+                value: ",", required: true, validate: function (v) {
+                    // "auto" or "," or other character
+                    // if list, must be list of strings
+                    if (v === "auto" || v === ",") {
+                        return true;
+                    }
+                    if (v.indexOf(',') > -1) {
+                        try {
+                            // first, will it parse as a comma delimited list
+                            var l = JSON.parse("[" + v + "]");
+                            // second, are all the elements strings
+                            var length = l.length;
+                            for (var i = 0; i < length; i++) {
+                                if (!(typeof l[i] === 'string' || l[i] instanceof String)) {
+                                    throw 'Non-string in list';
+                                }
                             }
                         }
+                        catch (err) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            },
+            quote: { value: "\"", required: true },
+            escape: { value: "\"", required: true },
+            ignoreEmpty: { value: false },
+            checkType: { value: false },
+            trim: { value: false },
+            noheader: { value: false },
+            includeColumns: {
+                value: "", validate: function (v) {
+                    try {
+                        JSON.parse("[" + v + "]");
                     }
                     catch (err) {
                         return false;
                     }
+                    return true;
                 }
-                return true; 
-            }},
-            quote: {value:"\"", required:true},
-            escape: {value:"\"", required:true},
-            ignoreEmpty: {value:false},
-            checkType: {value:false},
-            trim: {value:false},
-            noheader: {value:false},
-            includeColumns: {value:"", validate:function(v) {
-                try {
-                    JSON.parse("[" + v + "]"); 
+            },
+            headers: {
+                value: "", validate: function (v) {
+                    try {
+                        JSON.parse("[" + v + "]");
+                    }
+                    catch (err) {
+                        return false;
+                    }
+                    return true;
                 }
-                catch (err) {
-                    return false;
-                }
-                return true; 
-            }},
-            headers: {value:"", validate:function(v) {
-                try {
-                    JSON.parse("[" + v + "]"); 
-                }
-                catch (err) {
-                    return false;
-                }
-                return true; 
-            }},
-            debug: {value:false}
+            },
+            debug: { value: false },
+            singleMessages: { value: false }
         },
-        inputs:1,
-        outputs:1,
+        inputs: 1,
+        outputs: 1,
         icon: "file.png",
-        label: function() {
-            return this.name||"csv to json";
+        label: function () {
+            return this.name || "csv to json";
         }
     });
 </script>
@@ -120,6 +127,11 @@
     <div class="form-row">
         <label for="node-input-debug"><i class="fa fa-bug"></i> Debug</label>
         <input type="checkbox" id="node-input-debug">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-singleMessages"><i class="fa fa-list"></i> One message per row</label>
+        <input type="checkbox" id="node-input-singleMessages">
     </div>
 
     <div class="form-tips"><b>Reference:</b> <a target="_blank" href="https://github.com/Keyang/node-csvtojson">

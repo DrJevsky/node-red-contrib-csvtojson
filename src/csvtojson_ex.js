@@ -1,23 +1,17 @@
-function empty(data)
-{
-    if(typeof(data) == 'number' || typeof(data) == 'boolean')
-    { 
-        return false; 
+function empty(data) {
+    if (typeof (data) == 'number' || typeof (data) == 'boolean') {
+        return false;
     }
-    if(typeof(data) == 'undefined' || data === null)
-    {
-        return true; 
+    if (typeof (data) == 'undefined' || data === null) {
+        return true;
     }
-    if(typeof(data.length) != 'undefined')
-    {
+    if (typeof (data.length) != 'undefined') {
         return data.length === 0;
     }
     var count = 0;
-    for(var i in data)
-    {
-        if(data.hasOwnProperty(i))
-        {
-            count ++;
+    for (var i in data) {
+        if (data.hasOwnProperty(i)) {
+            count++;
         }
     }
     return count === 0;
@@ -35,12 +29,12 @@ function checkForValues(jsonObj) {
     return rowHasValues;
 }
 
-module.exports = function(RED) {
+module.exports = function (RED) {
     // changed in function - "this." replaced with "node."
     function CsvToJsonNode(config) {
-        const csv=require('csvtojson');
+        const csv = require('csvtojson');
         var node = this;
-        RED.nodes.createNode(node,config);
+        RED.nodes.createNode(node, config);
 
         // begin set properties        
         node.source = config.source;
@@ -51,12 +45,13 @@ module.exports = function(RED) {
         node.quote = config.quote;
         node.escape = config.escape;
         node.debug = config.debug;
+        node.singleMessages = config.singleMessages;
 
-        node.includeColumns = JSON.parse("["+config.includeColumns+"]");
-        
+        node.includeColumns = JSON.parse("[" + config.includeColumns + "]");
+
         // an empty object causes the actual column headers to be ignored
-        if(!empty(config.headers)) {
-            node.headers = JSON.parse("["+config.headers+"]");
+        if (!empty(config.headers)) {
+            node.headers = JSON.parse("[" + config.headers + "]");
         } else {
             node.headers = null;
         }
@@ -68,58 +63,65 @@ module.exports = function(RED) {
         }
 
         var csvproperties = {
-            noheader:node.noheader,
-            includeColumns:node.includeColumns,
-            ignoreEmpty:node.ignoreEmpty,
-            trim:node.trim,
-            checkType:node.checkType,
-            delimiter:node.delimiter,
-            quote:node.quote,
-            escape:node.escape,
-            headers:node.headers
+            noheader: node.noheader,
+            includeColumns: node.includeColumns,
+            ignoreEmpty: node.ignoreEmpty,
+            trim: node.trim,
+            checkType: node.checkType,
+            delimiter: node.delimiter,
+            quote: node.quote,
+            escape: node.escape,
+            headers: node.headers
         };
         // end set properties
 
-        node.on('input', function(msg) {
+        node.on('input', function (msg) {
 
             var debug = "";
             var jsonArray = [];
             var csvfunction = null;
 
             debug = csvproperties;
-            
+
             // set function state based on filename vs. payload input
-            if(node.source === "filename") { 
+            if (node.source === "filename") {
                 csvfunction = csv(csvproperties)
-                .fromFile(msg.filename);
+                    .fromFile(msg.filename);
             } else { // node.source === "payload"
-                if ( !(typeof msg.payload === 'string' || msg.payload instanceof String) ) {
+                if (!(typeof msg.payload === 'string' || msg.payload instanceof String)) {
                     // if someone messes up populating the payload with a string, try to make it work
                     msg.payload = JSON.stringify(msg.payload);
                 }
                 csvfunction = csv(csvproperties)
-                .fromString(msg.payload);
+                    .fromString(msg.payload);
             }
 
             // process function events
             csvfunction.
-            on('json',(jsonObj, rowIndex)=>{
-                if (checkForValues(jsonObj)) {
-                    jsonArray.push(jsonObj);
-                }
-            })
-            .on('done',()=>{
-                msg.payload = jsonArray;
-                if(node.debug) {
-                    msg.debug = debug;
-                }
-                node.send(msg);
-            })
-            .on('error',(err)=>{
-                node.error("Parser error: " + err,msg);
-            });
-            
+                on('json', (jsonObj, rowIndex) => {
+                    if (checkForValues(jsonObj)) {
+                        if (node.singleMessages) {
+                            var newMsg = { payload: jsonObj };
+                            node.send(newMsg);
+                        } else {
+                            jsonArray.push(jsonObj);
+                        }
+                    }
+                })
+                .on('done', () => {
+                    if (!node.singleMessages) {
+                        msg.payload = jsonArray;
+                        if (node.debug) {
+                            msg.debug = debug;
+                        }
+                        node.send(msg);
+                    }
+                })
+                .on('error', (err) => {
+                    node.error("Parser error: " + err, msg);
+                });
+
         });
-     }
-    RED.nodes.registerType("csv to json ext",CsvToJsonNode);
+    }
+    RED.nodes.registerType("csv to json ext", CsvToJsonNode);
 }
